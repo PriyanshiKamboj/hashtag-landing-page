@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Class Calendar</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<style>
+
+      .calendar {
+       max-width: 400px;
+       margin: 0 auto;
+       text-align: center;
+    }
+
+    .classes-container {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
+</style>
+<body>
+  <body>
+  <div class="calendar">
+    <input type="date" id="datePicker" onchange="showClasses()">
+    <div id="classes" class="classes-container">
+      <!-- Class buttons will be displayed here -->
+    </div>
+    <div id="selectedClass"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+  <script src="script.js"></script>
+  <script>
+      const classesByDay = {
+  Sunday: ["No classes on Sunday"],
+  Monday: ["Math Class - 9:00 AM", "Science Class - 11:00 AM"],
+  Tuesday: ["History Class - 10:00 AM", "English Class - 1:00 PM"],
+  Wednesday: ["Physics Class - 9:30 AM", "Art Class - 12:00 PM"],
+  Thursday: ["Geography Class - 9:30 AM", "Biology Class - 2:00 PM"],
+  Friday: ["Chemistry Class - 10:00 AM", "Music Class - 12:30 PM"],
+  Saturday: ["Computer Science - 11:00 AM", "Physical Education - 3:00 PM"],
+};
+
+let selectedClass = "";
+
+function showClasses() {
+  const datePicker = document.getElementById('datePicker');
+  const selectedDate = new Date(datePicker.value);
+  const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+
+  const classes = classesByDay[dayOfWeek];
+
+  const classesContainer = document.getElementById('classes');
+  classesContainer.innerHTML = '';
+
+  if (classes.length === 0) {
+    classesContainer.innerHTML = 'No classes for this day.';
+    return;
+  }
+
+  classes.forEach((classInfo) => {
+    const classButton = document.createElement('button');
+    classButton.textContent = classInfo;
+    classButton.addEventListener('click', () => {
+      selectClass(classInfo);
+    });
+
+    classesContainer.appendChild(classButton);
+  });
+}
+
+function selectClass(classInfo) {
+  selectedClass = classInfo;
+  const selectedClassDiv = document.getElementById('selectedClass');
+  selectedClassDiv.innerHTML = `Selected Class: ${selectedClass}`;
+}
+
+
+
+  </script>
+</body>
+</html>

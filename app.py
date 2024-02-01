@@ -11,6 +11,7 @@ import random
 from datetime import datetime, timedelta
 from string import Template
 import threading
+import razorpay
 
 
 
@@ -48,6 +49,12 @@ os.environ['TARUN_PASSWORD'] = "tarun_password"
 sheet_key = os.environ.get('SHEET_KEY')
 sheet_name = os.environ.get('SHEET_NAME')
 
+
+# Razorpay payment gateway credentials
+razorpay_key_id = 'rzp_test_9Yy2azW5HeczxN'
+razorpay_key_secret = 'QhcRWMasciGh2iZUhNe6m786'
+# Create a Razorpay client
+razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
 
 # PROMO CODE HANDLER
 
@@ -449,17 +456,27 @@ def select_batch():
 @app.route('/payment-method', methods=['GET', 'POST'])
 def make_payment():
 
+    session['batches'] = request.form.getlist('batch[]')
+    print(session['batches'])
+    batch = session['batches']
+    # Get the selected batches as a list
+        # Create a new order in Razorpay
+    order_amount = int(float(request.form['fee']) * 100)  # Convert fee to the smallest currency unit (in paisa)
+    order_currency = 'INR'
 
+    order_data = {
+            'amount': order_amount,
+            'currency': order_currency,
+            'receipt': session.get('order_receipt'),
+            'payment_capture': 1,  # Auto-capture the payment
+            # Add any other parameters as required
+        }
 
-
-      # Replace with your own logic to generate a unique order receipt ID
-
-
-
-    if request.form['fee'] == "":
-        flash(category=str, message="Please select atleast 1 batch")
-        return redirect("/")
-    else:
+    order_response = razorpay_client.order.create(data=order_data)
+    session['fee'] = round(order_amount/100 * 1.18)
+    print(session.get('fee'))
+    if order_response.get('id'):
+        order_id = order_response['id']
         session['order_receipt'] = get_current_receipt_number()
         session['batches'] = request.form.getlist('batch[]')
         session['fee_without_gst'] = request.form['fee']
@@ -477,11 +494,22 @@ def make_payment():
             session['dropin_date'] = request.form['dropin_date']
             session['batch'] = request.form['batch']
 
-        return render_template('pay.html')
+        # Redirect the user to the Razorpay payment page
+        return render_template("pay.html", payment=order_response,  fee = float(session.get('fee'))*100)
+    else:
+        # Failed to create the order
+        return render_template('failed.html')
 
 
-workingKey = "868E43E034DB2953A9E18EC401CA3268"
-accessCode = "AVKR14KI19BL44RKLB"
+# Replace with your own logic to generate a unique order receipt ID
+#
+#     # CC Avenue
+#
+#
+
+#
+# workingKey = "868E43E034DB2953A9E18EC401CA3268"
+# accessCode = "AVKR14KI19BL44RKLB"
 
 @app.route('/payment', methods=['GET', 'POST'])
 def ccavenue_login():
@@ -567,9 +595,9 @@ def process_cash():
 
 @app.route('/success', methods=['GET', 'POST'])
 def payment_successful():
-    request.form.get('')
     sheet = client.open_by_key(sheet_key).worksheet(sheet_name)
     batch_str = ', '.join(session.get('batches'))  # Join the batches list with a comma separator
+    print(f"thi is {batch_str}")
     today_date = datetime.today().strftime('%d-%b-%Y')
     name = session.get('name')
     phone = session.get('phone')
@@ -599,14 +627,13 @@ def payment_successful():
 
 
     elif validity == "Drop In":
-        batch_str = session.get('batch')
+        # batch_str = session.get('batch')
         promo_code_created = create_promo_json(name, email, phone, fee_without_gst, session.get('dropin_date'),
                                        "promo_code.json")
 
     if promo_code_applied:
         remove_promo_code(name, email, phone, promo_code_applied, filename="promo_code.json")
 
-    print(batch_str)
     print(source)
     if validity == "Drop In":
         row = [today_date, name, phone, email, "#" + order_receipt, validity, batch_str, fee, studio,
@@ -648,12 +675,12 @@ def payment_successful():
 
     return render_template("success.html")
 
-# def render_recipt(date):
-#     return render_template("receipt2.html", date=today_date, name=name, batch=batch_str, phone=phone,
-#                                        validity=validity, email=email, studio=studio, gross_amount=gross_amount,
-#                                        gst=gst, fee=fee, order_receipt=f"#{str(order_receipt)}",
-#                                        mode_of_payment=mode_of_payment, paid_to=paid_to, hashtag_logo=hashtag_logo,
-#                                        watermark=hashtag_watermark, promo_code=promo_code)
+def render_recipt(date):
+    return render_template("receipt2.html", date=today_date, name=name, batch=batch_str, phone=phone,
+                                       validity=validity, email=email, studio=studio, gross_amount=gross_amount,
+                                       gst=gst, fee=fee, order_receipt=f"#{str(order_receipt)}",
+                                       mode_of_payment=mode_of_payment, paid_to=paid_to, hashtag_logo=hashtag_logo,
+                                       watermark=hashtag_watermark, promo_code=promo_code)
 
 
 @app.route('/terms')
@@ -667,5 +694,5 @@ def payment_failed():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=4915)
+    app.run(debug=True, port=4916)
 
